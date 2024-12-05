@@ -2,97 +2,77 @@ advent_of_code::solution!(4);
 
 fn check_xmas(grid: &Vec<Vec<char>>, i: usize, j: usize) -> u32 {
     let mut xmas_count = 0;
-    let horizontal_length = grid[i].len();
-    let vertical_length = grid.len();
+    let xmas_chars = ['X', 'M', 'A', 'S'];
+    let directions = [
+        (1, 0),   // horizontal right
+        (-1, 0),  // horizontal left
+        (0, 1),   // vertical down
+        (0, -1),  // vertical up
+        (1, 1),   // diagonal down-right
+        (-1, -1), // diagonal up-left
+        (1, -1),  // diagonal down-left
+        (-1, 1),  // diagonal up-right
+    ];
 
-    // check horizontal XMAS pattern both directions
-    if i + 3 < horizontal_length {
-        if grid[i][j] == 'X'
-            && grid[i + 1][j] == 'M'
-            && grid[i + 2][j] == 'A'
-            && grid[i + 3][j] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    if (i as i32 - 3) >= 0 {
-        if grid[i][j] == 'X'
-            && grid[i - 1][j] == 'M'
-            && grid[i - 2][j] == 'A'
-            && grid[i - 3][j] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    // vertical XMAS pattern both directions
-    if j + 3 < vertical_length {
-        if grid[i][j] == 'X'
-            && grid[i][j + 1] == 'M'
-            && grid[i][j + 2] == 'A'
-            && grid[i][j + 3] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    if (j as i32 - 3) >= 0 {
-        if grid[i][j] == 'X'
-            && grid[i][j - 1] == 'M'
-            && grid[i][j - 2] == 'A'
-            && grid[i][j - 3] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    // diagonal XMAS pattern
-    // down and right
-    if i + 3 < horizontal_length && j + 3 < vertical_length {
-        if grid[i][j] == 'X'
-            && grid[i + 1][j + 1] == 'M'
-            && grid[i + 2][j + 2] == 'A'
-            && grid[i + 3][j + 3] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    // up and left
-    if (i as i32 - 3) >= 0 && (j as i32 - 3) >= 0 {
-        if grid[i][j] == 'X'
-            && grid[i - 1][j - 1] == 'M'
-            && grid[i - 2][j - 2] == 'A'
-            && grid[i - 3][j - 3] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    // up  and right
-    if (i as i32 + 3) < horizontal_length as i32 && (j as i32 - 3) >= 0 {
-        if grid[i][j] == 'X'
-            && grid[i + 1][j - 1] == 'M'
-            && grid[i + 2][j - 2] == 'A'
-            && grid[i + 3][j - 3] == 'S'
-        {
-            xmas_count += 1;
-        }
-    }
-
-    // down and left
-    if (i as i32 - 3) >= 0 && (j as i32 + 3) < vertical_length as i32 {
-        if grid[i][j] == 'X'
-            && grid[i - 1][j + 1] == 'M'
-            && grid[i - 2][j + 2] == 'A'
-            && grid[i - 3][j + 3] == 'S'
-        {
+    for &(di, dj) in &directions {
+        if (0..4).all(|k| {
+            let ni = i as isize + k * di;
+            let nj = j as isize + k * dj;
+            ni >= 0
+                && nj >= 0
+                && ni < grid.len() as isize
+                && nj < grid[0].len() as isize
+                && grid[ni as usize][nj as usize] == xmas_chars[k as usize]
+        }) {
             xmas_count += 1;
         }
     }
 
     xmas_count
+}
+
+fn check_mas(grid: &Vec<Vec<char>>, i: usize, j: usize) -> u32 {
+    let mut diag_1_ok = false;
+    let mut diag_2_ok = false;
+
+    let mas_chars = ['M', 'A', 'S'];
+
+    let diag_1 = [(-1, -1, 1, 1), (1, 1, -1, -1)];
+    let diag_2 = [(-1, 1, 1, -1), (1, -1, -1, 1)];
+
+    for &(oi, oj, di, dj) in &diag_1 {
+        if (0..3).all(|k| {
+            let ni = i as isize + oi + di * k;
+            let nj = j as isize + oj + dj * k;
+            ni >= 0
+                && nj >= 0
+                && ni < grid.len() as isize
+                && nj < grid[0].len() as isize
+                && grid[ni as usize][nj as usize] == mas_chars[k as usize]
+        }) {
+            diag_1_ok = true;
+        }
+    }
+
+    for &(oi, oj, di, dj) in &diag_2 {
+        if (0..3).all(|k| {
+            let ni = i as isize + oi + di * k;
+            let nj = j as isize + oj + dj * k;
+            ni >= 0
+                && nj >= 0
+                && ni < grid.len() as isize
+                && nj < grid[0].len() as isize
+                && grid[ni as usize][nj as usize] == mas_chars[k as usize]
+        }) {
+            diag_2_ok = true;
+        }
+    }
+
+    if diag_1_ok && diag_2_ok {
+        1
+    } else {
+        0
+    }
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -118,8 +98,8 @@ pub fn part_two(input: &str) -> Option<u32> {
 
     for row in 0..grid.len() {
         for col in 0..grid[row].len() {
-            if grid[row][col] == 'X' {
-                counter += check_xmas(&grid, row, col);
+            if grid[row][col] == 'A' {
+                counter += check_mas(&grid, row, col);
             }
         }
     }
@@ -140,6 +120,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(9));
     }
 }
