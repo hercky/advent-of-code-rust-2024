@@ -89,39 +89,52 @@ impl Region {
     }
 }
 
-fn get_perimeter(visited: &Vec<Vec<i32>>, id: i32) -> u32 {
-    let mut perimeter = 0;
+fn is_corner(padded_visited: &Vec<Vec<i32>>, id: i32, i: i32, j: i32) -> bool {
+    let m = padded_visited.len() as i32;
+    let n = padded_visited[0].len() as i32;
 
-    let mut x_set: HashSet<i32> = HashSet::new();
-    let mut y_set: HashSet<i32> = HashSet::new();
+    let mut same_id = 0;
 
-    for i in 0..visited.len() {
-        for j in 0..visited[i].len() {
-            if visited[i][j] == id {
-                // insert all the sides for this cell into the sets
-                if i == 0 || i > 0 && visited[i - 1][j] != id {
-                    x_set.insert(i as i32 - 1);
-                }
-                if i == visited.len() - 1 || i < visited.len() - 1 && visited[i + 1][j] != id {
-                    x_set.insert(i as i32 + 1);
-                }
-                if j == 0 || j > 0 && visited[i][j - 1] != id {
-                    y_set.insert(j as i32 - 1);
-                }
-                if j == visited[i].len() - 1 || j < visited[i].len() - 1 && visited[i][j + 1] != id
-                {
-                    y_set.insert(j as i32 + 1);
-                }
+    if i - 1 >= 0 && j - 1 >= 0 && padded_visited[(i - 1) as usize][(j - 1) as usize] == id {
+        same_id += 1;
+    }
+    if i - 1 >= 0 && j + 1 < n && padded_visited[(i - 1) as usize][(j + 1) as usize] == id {
+        same_id += 1;
+    }
+    if i + 1 < m && j - 1 >= 0 && padded_visited[(i + 1) as usize][(j - 1) as usize] == id {
+        same_id += 1;
+    }
+    if i + 1 < m && j + 1 < n && padded_visited[(i + 1) as usize][(j + 1) as usize] == id {
+        same_id += 1;
+    }
+
+    same_id == 1 || same_id == 3
+}
+
+fn get_corners(visited: &Vec<Vec<i32>>, id: i32) -> u32 {
+    let m = visited.len() as i32;
+    let n = visited[0].len() as i32;
+
+    let mut padded_visited = vec![vec![-1; (2 * n + 1) as usize]; (2 * m + 1) as usize];
+
+    for i in 0..m as usize {
+        for j in 0..n as usize {
+            padded_visited[2 * i + 1][2 * j + 1] = visited[i][j];
+        }
+    }
+
+    let mut corners = 0;
+
+    for i in (0..padded_visited.len()).step_by(2) {
+        for j in (0..padded_visited[0].len()).step_by(2) {
+            if is_corner(&padded_visited, id, i as i32, j as i32) {
+                corners += 1;
             }
         }
     }
 
-    // count unique x and y values
-    perimeter += x_set.len() + y_set.len();
-
-    perimeter as u32
+    corners
 }
-
 pub fn part_one(input: &str) -> Option<u64> {
     let grid = parse_input(input);
 
@@ -166,10 +179,13 @@ pub fn part_two(input: &str) -> Option<u64> {
     }
 
     for region in &mut regions {
-        region.set_perimeter(get_perimeter(&visited, region.id));
+        // println!("---- Plant {} -------", region.plant);
+        region.set_perimeter(get_corners(&visited, region.id));
     }
 
-    println!("{:?}", regions);
+    for region in &regions {
+        // println!("{:?}", region);
+    }
 
     for i in 0..regions.len() {
         cost += regions[i].cost();
