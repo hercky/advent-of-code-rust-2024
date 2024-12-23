@@ -1,6 +1,4 @@
 advent_of_code::solution!(13);
-use ndarray::prelude::*;
-use ndarray_linalg::Solve;
 
 #[derive(Clone)]
 pub struct Coordinates {
@@ -125,19 +123,31 @@ fn parse_prize(line: &str) -> (u64, u64) {
     (x, y)
 }
 
-fn solve_linear_equation(a: Coordinates, b: Coordinates, prize: Coordinates) -> u64 {
-    let a_matrix = array![[a.x, b.x], [a.y, b.y]];
-    let b_vector = array![prize.x, prize.y];
+fn manual_solve_linear_equation(a: Coordinates, b: Coordinates, prize: Coordinates) -> u64 {
+    let ax = a.x as i64;
+    let ay = a.y as i64;
+    let bx = b.x as i64;
+    let by = b.y as i64;
 
-    let solution = a_matrix.solve_into(b_vector).unwrap();
+    let px = prize.x as i64;
+    let py = prize.y as i64;
 
-    let answer = 3 * solution[0] + solution[1];
+    let b = (px * ay - py * ax) / (ay * bx - ax * by);
+    let a = (px * by - py * bx) / (by * ax - ay * bx);
 
-    answer as u64
+    // if a < 0 || b < 0 {
+    //     return 0;
+    // }
+
+    if ax * a + bx * b == px && ay * a + by * b == py {
+        return (3 * a + b) as u64;
+    } else {
+        return 0;
+    }
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    let mut answer: u32 = 0;
+pub fn part_two(input: &str) -> Option<u64> {
+    let mut answer: u64 = 0;
 
     let mut machine_number = 0;
 
@@ -163,7 +173,7 @@ pub fn part_two(input: &str) -> Option<u32> {
             prize_y = prize_y + 10000000000000;
 
             // solve for the prize now !!
-            let tokens_for_this_machine = solve_linear_equation(
+            let tokens_for_this_machine = manual_solve_linear_equation(
                 Coordinates::new(a_x, a_y),
                 Coordinates::new(b_x, b_y),
                 Coordinates::new(prize_x, prize_y),
@@ -171,9 +181,10 @@ pub fn part_two(input: &str) -> Option<u32> {
 
             machine_number += 1;
 
-            answer += tokens_for_this_machine as u32;
+            answer += tokens_for_this_machine;
         });
 
+    println!("{}", answer);
     Some(answer)
 }
 
