@@ -1,8 +1,10 @@
 advent_of_code::solution!(14);
 
-use std::collections::HashMap;
-
+use colored::*;
 use regex::Regex;
+use std::collections::HashMap;
+use std::io;
+use std::io::Write;
 
 #[derive(Clone)]
 struct Robot {
@@ -91,6 +93,31 @@ fn print_robots_on_grid(robots: &[Robot], max_x: u32, max_y: u32) {
     }
 }
 
+fn pretty_print_robots_on_grid(
+    robots: &[Robot],
+    max_x: u32,
+    max_y: u32,
+    time: i32,
+    file_name: &str,
+) {
+    let mut grid = vec![vec!['.'; max_x as usize + 1]; max_y as usize + 1];
+
+    for robot in robots {
+        grid[robot.y as usize][robot.x as usize] = '#';
+    }
+
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(file_name)
+        .unwrap();
+
+    writeln!(file, "{}", time).unwrap();
+    for row in grid {
+        writeln!(file, "{}", row.iter().collect::<String>()).unwrap();
+    }
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
     let mut robots = input
         .lines()
@@ -123,6 +150,25 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let mut robots = input
+        .lines()
+        .map(|line| parse_line(line))
+        .collect::<Vec<_>>();
+
+    let original_robots = robots.clone();
+
+    // problem constraints
+    let max_x = 101 - 1;
+    let max_y = 103 - 1;
+
+    for i in 0..10_000 {
+        robots
+            .iter_mut()
+            .for_each(|robot| robot.step(1, max_x, max_y));
+
+        pretty_print_robots_on_grid(&robots, max_x, max_y, i, "output.txt");
+    }
+
     None
 }
 
