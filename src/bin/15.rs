@@ -174,13 +174,14 @@ impl Block {
     }
 }
 
-fn print_block_grid(grid: &Vec<Vec<Block>>) {
-    for row in grid {
-        for block in row {
-            print!("{}", block.block_type.to_string());
-        }
-        println!();
-    }
+fn convert_block_grid(grid: &Vec<Vec<Block>>) -> Vec<Vec<char>> {
+    grid.iter()
+        .map(|row| {
+            row.iter()
+                .flat_map(|block| block.block_type.to_string().chars().collect::<Vec<_>>())
+                .collect()
+        })
+        .collect()
 }
 
 // fn next_position(direction: char, current_block: Block, grid: &Vec<Vec<char>>) -> (u32, u32, u32) {
@@ -231,6 +232,12 @@ fn print_block_grid(grid: &Vec<Vec<Block>>) {
 //     }
 // }
 
+fn simulate_path_blocks(grid: &Vec<Vec<char>>, path: &Vec<char>) -> Vec<Vec<char>> {
+    let mut grid = grid.clone();
+
+    grid
+}
+
 pub fn part_two(input: &str) -> Option<u64> {
     let (grid, path) = parse_input(input);
 
@@ -251,7 +258,9 @@ pub fn part_two(input: &str) -> Option<u64> {
         block_grid.push(row);
     }
 
-    print_block_grid(&block_grid);
+    let grid = convert_block_grid(&block_grid);
+
+    print_grid(&grid);
 
     return None;
 
