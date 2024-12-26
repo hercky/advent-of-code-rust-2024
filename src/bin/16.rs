@@ -1,6 +1,6 @@
 advent_of_code::solution!(16);
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -66,30 +66,16 @@ fn is_valid_move(grid: &Vec<Vec<char>>, to: (usize, usize)) -> bool {
     true
 }
 
-fn bfs(
-    grid: &Vec<Vec<char>>,
-    start: (usize, usize),
-    end: (usize, usize),
-    start_dir: Direction,
-) -> Option<u64> {
-    let mut visited = HashSet::new();
+fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Option<u64> {
+    let mut visited = HashMap::new();
     let mut queue = VecDeque::new();
     queue.push_back((start, start_dir, 0, vec![(start.0, start.1, start_dir)]));
-
+    visited.insert((start, start_dir), 0);
     let mut best_cost = u64::MAX;
     let mut best_path: Vec<(usize, usize, Direction)> = Vec::new();
 
     while let Some((current_loc, dir, cost, path)) = queue.pop_front() {
-        // println!(
-        //     "current_loc: {:?}, dir: {:?}, cost: {}",
-        //     current_loc, dir, cost
-        // );
-        // println!("path: {:?}", path);
-
-        visited.insert((current_loc, dir));
-
         if grid[current_loc.0][current_loc.1] == 'E' {
-            println!("found end at {:?} with cost {}", (current_loc, dir), cost);
             if cost < best_cost {
                 best_cost = cost;
                 best_path = path.clone();
@@ -103,77 +89,48 @@ fn bfs(
             (current_loc.1 as i32 + dir.delta().1) as usize,
         );
         let next_dir = dir;
-        // println!(
-        //     "Trying to move to next_loc: {:?}, next_dir: {:?}",
-        //     next_loc, next_dir
-        // );
-        if is_valid_move(grid, next_loc) && !visited.contains(&(next_loc, next_dir)) {
-            // println!(
-            //     "Moving to next_loc: {:?}, next_dir: {:?}",
-            //     next_loc, next_dir
-            // );
+        let next_cost = cost + COST_MOVING_FORWARD;
+        if is_valid_move(grid, next_loc)
+            || (visited.contains_key(&(next_loc, next_dir))
+                && visited[&(next_loc, next_dir)] > next_cost)
+        {
             let mut new_path = path.clone();
             new_path.push((next_loc.0, next_loc.1, dir));
-            queue.push_back((next_loc, next_dir, cost + COST_MOVING_FORWARD, new_path));
+            queue.push_back((next_loc, next_dir, next_cost, new_path));
+            visited.insert((next_loc, next_dir), next_cost);
         }
 
         // rotate 90 degrees left
+        let next_loc = current_loc;
         let next_dir = dir.rotate_left();
-        if !visited.contains(&(current_loc, next_dir)) {
+        let next_cost = cost + COST_SWITCHING_DIRECTION;
+        if !visited.contains_key(&(next_loc, next_dir))
+            || visited[&(next_loc, next_dir)] > next_cost
+        {
             let mut new_path = path.clone();
-            new_path.push((current_loc.0, current_loc.1, next_dir));
-            queue.push_back((
-                current_loc,
-                next_dir,
-                cost + COST_SWITCHING_DIRECTION,
-                new_path,
-            ));
+            new_path.push((next_loc.0, next_loc.1, next_dir));
+            queue.push_back((next_loc, next_dir, next_cost, new_path));
+            visited.insert((next_loc, next_dir), next_cost);
         }
 
         // rotate 90 degrees right
+        let next_loc = current_loc;
         let next_dir = dir.rotate_right();
-        if !visited.contains(&(current_loc, next_dir)) {
+        let next_cost = cost + COST_SWITCHING_DIRECTION;
+        if !visited.contains_key(&(next_loc, next_dir))
+            || visited[&(next_loc, next_dir)] > next_cost
+        {
             let mut new_path = path.clone();
-            new_path.push((current_loc.0, current_loc.1, next_dir));
-            queue.push_back((
-                current_loc,
-                next_dir,
-                cost + COST_SWITCHING_DIRECTION,
-                new_path,
-            ));
+            new_path.push((next_loc.0, next_loc.1, next_dir));
+            queue.push_back((next_loc, next_dir, next_cost, new_path));
+            visited.insert((next_loc, next_dir), next_cost);
         }
-
-        // println!("--------------------------------");
-        // println!("Queue contents:");
-        // for (loc, dir, cost, _) in queue.iter() {
-        //     println!(
-        //         "  - location: {:?}, direction: {:?}, cost: {}",
-        //         loc, dir, cost
-        //     );
-        // }
     }
-
-    // print_grid_with_visited(&grid, &visited);
-    // println!("\nPath taken:");
-    // print_grid_with_path(&grid, &best_path);
 
     if best_cost == u64::MAX {
         None
     } else {
         Some(best_cost)
-    }
-}
-
-fn print_grid_with_visited(grid: &Vec<Vec<char>>, visited: &HashSet<((usize, usize), Direction)>) {
-    for (i, row) in grid.iter().enumerate() {
-        for (j, &c) in row.iter().enumerate() {
-            if visited.iter().any(|((x, y), _)| *x == i && *y == j) {
-                print!("*");
-            } else {
-                print!("{}", c);
-            }
-        }
-        println!();
     }
 }
 
@@ -208,7 +165,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     // replace S with .
     grid[start.0][start.1] = '.';
 
-    let cost = bfs(&grid, start, end, E)?;
+    let cost = bfs(&grid, start, E)?;
 
     Some(cost as u32)
 }
