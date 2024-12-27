@@ -66,13 +66,18 @@ fn is_valid_move(grid: &Vec<Vec<char>>, to: (usize, usize)) -> bool {
     true
 }
 
-fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Option<u64> {
+fn bfs(
+    grid: &Vec<Vec<char>>,
+    start: (usize, usize),
+    start_dir: Direction,
+) -> Option<(u64, Vec<(Vec<(usize, usize, Direction)>, u64)>)> {
     let mut visited = HashMap::new();
     let mut queue = VecDeque::new();
     queue.push_back((start, start_dir, 0, vec![(start.0, start.1, start_dir)]));
     visited.insert((start, start_dir), 0);
     let mut best_cost = u64::MAX;
     let mut best_path: Vec<(usize, usize, Direction)> = Vec::new();
+    let mut all_paths: Vec<(Vec<(usize, usize, Direction)>, u64)> = Vec::new();
 
     while let Some((current_loc, dir, cost, path)) = queue.pop_front() {
         if grid[current_loc.0][current_loc.1] == 'E' {
@@ -80,6 +85,8 @@ fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Op
                 best_cost = cost;
                 best_path = path.clone();
             }
+
+            all_paths.push((path, cost));
             continue;
         }
 
@@ -92,7 +99,7 @@ fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Op
         let next_cost = cost + COST_MOVING_FORWARD;
         if is_valid_move(grid, next_loc)
             || (visited.contains_key(&(next_loc, next_dir))
-                && visited[&(next_loc, next_dir)] > next_cost)
+                && visited[&(next_loc, next_dir)] >= next_cost)
         {
             let mut new_path = path.clone();
             new_path.push((next_loc.0, next_loc.1, dir));
@@ -105,7 +112,7 @@ fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Op
         let next_dir = dir.rotate_left();
         let next_cost = cost + COST_SWITCHING_DIRECTION;
         if !visited.contains_key(&(next_loc, next_dir))
-            || visited[&(next_loc, next_dir)] > next_cost
+            || visited[&(next_loc, next_dir)] >= next_cost
         {
             let mut new_path = path.clone();
             new_path.push((next_loc.0, next_loc.1, next_dir));
@@ -118,7 +125,7 @@ fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Op
         let next_dir = dir.rotate_right();
         let next_cost = cost + COST_SWITCHING_DIRECTION;
         if !visited.contains_key(&(next_loc, next_dir))
-            || visited[&(next_loc, next_dir)] > next_cost
+            || visited[&(next_loc, next_dir)] >= next_cost
         {
             let mut new_path = path.clone();
             new_path.push((next_loc.0, next_loc.1, next_dir));
@@ -130,7 +137,7 @@ fn bfs(grid: &Vec<Vec<char>>, start: (usize, usize), start_dir: Direction) -> Op
     if best_cost == u64::MAX {
         None
     } else {
-        Some(best_cost)
+        Some((best_cost, all_paths))
     }
 }
 
@@ -165,13 +172,35 @@ pub fn part_one(input: &str) -> Option<u32> {
     // replace S with .
     grid[start.0][start.1] = '.';
 
-    let cost = bfs(&grid, start, E)?;
+    let (cost, _) = bfs(&grid, start, E)?;
 
     Some(cost as u32)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let mut grid = parse_input(input);
+
+    let start = find_cell(&grid, 'S')?;
+    let end = find_cell(&grid, 'E')?;
+
+    // replace S with .
+    grid[start.0][start.1] = '.';
+
+    let (best_cost, all_paths) = bfs(&grid, start, E)?;
+
+    let mut unique_tiles: HashSet<(usize, usize)> = HashSet::new();
+
+    for (path, cost) in all_paths {
+        if cost == best_cost {
+            print_grid_with_path(&grid, &path);
+            for (x, y, _) in path {
+                unique_tiles.insert((x, y));
+            }
+        }
+    }
+
+    // println!("unique tiles: {}", unique_tiles.len());
+    Some(unique_tiles.len() as u32)
 }
 
 #[cfg(test)]
@@ -187,6 +216,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(45));
     }
 }
