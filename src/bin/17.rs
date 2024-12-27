@@ -64,10 +64,20 @@ impl From<Code> for OperandType {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Instruction {
+struct CodeInstruction {
     code: Code,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OperandInstruction {
     operand: u8,
     operand_type: OperandType,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Instruction {
+    Code(CodeInstruction),
+    Operand(OperandInstruction),
 }
 
 struct Machine {
@@ -107,13 +117,18 @@ impl Machine {
                     .map(|n| n.parse::<u8>().unwrap())
                     .collect();
 
-                // Process pairs of numbers as (opcode, operand)
+                // Process numbers alternating between code and operand
                 program = numbers
                     .chunks(2)
-                    .map(|chunk| Instruction {
-                        code: Code::from(chunk[0]),
-                        operand: chunk[1],
-                        operand_type: OperandType::from(Code::from(chunk[0])),
+                    .flat_map(|chunk| {
+                        let code = Code::from(chunk[0]);
+                        [
+                            Instruction::Code(CodeInstruction { code }),
+                            Instruction::Operand(OperandInstruction {
+                                operand: chunk[1],
+                                operand_type: OperandType::from(code),
+                            }),
+                        ]
                     })
                     .collect();
             }
@@ -129,15 +144,6 @@ impl Machine {
         }
     }
 
-    fn get_register(&self, reg: char) -> Option<usize> {
-        match reg {
-            'A' => Some(self.a.val),
-            'B' => Some(self.b.val),
-            'C' => Some(self.c.val),
-            _ => None,
-        }
-    }
-
     fn get_combo_value(&self, operand: u8) -> usize {
         match operand {
             0..4 => operand as usize,
@@ -148,23 +154,23 @@ impl Machine {
         }
     }
 
-    fn one_step(&mut self) -> Option<u8> {
+    fn one_step(&mut self, opcode: CodeInstruction, operand: OperandInstruction) -> Option<u8> {
         if self.halt {
             return None;
         }
 
-        let instruction = self.program[self.counter];
-
-        let op_val = match instruction.operand_type {
-            OperandType::Combo => self.get_combo_value(instruction.operand),
-            OperandType::Literal => instruction.operand as usize,
-            _ => 0,
+        let op_val = match operand.operand_type {
+            OperandType::Combo => self.get_combo_value(operand.operand),
+            OperandType::Literal => operand.operand as usize,
+            OperandType::Nil => 0,
         };
 
-        println!("Instruction: {:?}", instruction);
-        println!("Op Val: {}", op_val);
+        // println!("Instruction\t: Opcode {:?}\tOperand {:?}", opcode, operand);
+        // println!("Op Val: {}", op_val);
 
-        match instruction.code {
+        let mut jump = false;
+
+        match opcode.code {
             Code::adv => {
                 self.a.val = self.a.val as usize / 2usize.pow(op_val as u32);
             }
@@ -176,7 +182,8 @@ impl Machine {
             }
             Code::jnz => {
                 if self.a.val != 0 {
-                    self.counter = op_val as usize - 1;
+                    self.counter = op_val as usize;
+                    jump = true;
                 }
             }
             Code::bxc => {
@@ -193,7 +200,10 @@ impl Machine {
             }
         }
 
-        self.counter += 1;
+        if !jump {
+            self.counter += 2;
+        }
+
         if self.counter >= self.program.len() {
             self.halt = true;
         }
@@ -211,9 +221,17 @@ impl Machine {
 
     fn run(&mut self) {
         while !self.halt {
-            println!("--------------------------------");
-            self.print_state();
-            self.one_step();
+            // println!("--------------------------------");
+            // self.print_state();
+
+            let Instruction::Code(code) = self.program[self.counter] else {
+                unreachable!()
+            };
+            let Instruction::Operand(operand) = self.program[self.counter + 1] else {
+                unreachable!()
+            };
+
+            self.one_step(code, operand);
         }
     }
 }
