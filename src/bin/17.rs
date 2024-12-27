@@ -169,6 +169,7 @@ impl Machine {
         // println!("Op Val: {}", op_val);
 
         let mut jump = false;
+        let mut print_output = None;
 
         match opcode.code {
             Code::adv => {
@@ -191,12 +192,13 @@ impl Machine {
             }
             Code::out => {
                 print!("{},", op_val % 8);
+                print_output = Some((op_val % 8) as u8);
             }
             Code::bdv => {
                 self.b.val = self.a.val as usize / 2usize.pow(op_val as u32);
             }
             Code::cdv => {
-                self.c.val = self.b.val as usize / 2usize.pow(op_val as u32);
+                self.c.val = self.a.val as usize / 2usize.pow(op_val as u32);
             }
         }
 
@@ -208,7 +210,7 @@ impl Machine {
             self.halt = true;
         }
 
-        None
+        print_output
     }
 
     fn print_state(&self) {
@@ -220,9 +222,12 @@ impl Machine {
     }
 
     fn run(&mut self) {
+        // self.print_state();
+        // println!("{:?}", self.program);
+        let mut result: Vec<u8> = Vec::new();
+
         while !self.halt {
             // println!("--------------------------------");
-            // self.print_state();
 
             let Instruction::Code(code) = self.program[self.counter] else {
                 unreachable!()
@@ -231,14 +236,21 @@ impl Machine {
                 unreachable!()
             };
 
-            self.one_step(code, operand);
+            if let Some(print_output) = self.one_step(code, operand) {
+                result.push(print_output);
+            }
         }
+
+        println!("--------------------------------");
+        println!("{:?}", result);
     }
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
     let mut machine = Machine::parse_and_init(input);
+
     machine.run();
+
     None
 }
 
