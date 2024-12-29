@@ -191,7 +191,7 @@ impl Machine {
                 self.b.val = self.b.val ^ self.c.val;
             }
             Code::out => {
-                print!("{},", op_val % 8);
+                // print!("{},", op_val % 8);
                 print_output = Some((op_val % 8) as u8);
             }
             Code::bdv => {
@@ -244,6 +244,43 @@ impl Machine {
         println!("--------------------------------");
         println!("{:?}", result);
     }
+
+    fn run_and_get_output(&mut self) -> Vec<u8> {
+        let mut result: Vec<u8> = Vec::new();
+
+        while !self.halt {
+            let Instruction::Code(code) = self.program[self.counter] else {
+                unreachable!()
+            };
+            let Instruction::Operand(operand) = self.program[self.counter + 1] else {
+                unreachable!()
+            };
+
+            if let Some(print_output) = self.one_step(code, operand) {
+                result.push(print_output);
+            }
+        }
+
+        result
+    }
+
+    fn reset(&mut self, a: usize, b: usize, c: usize) {
+        self.a = Register::new('A', a);
+        self.b = Register::new('B', b);
+        self.c = Register::new('C', c);
+        self.counter = 0;
+        self.halt = false;
+    }
+
+    fn program_to_vec(&self) -> Vec<u8> {
+        self.program
+            .iter()
+            .map(|i| match i {
+                Instruction::Code(code) => code.code as u8,
+                Instruction::Operand(operand) => operand.operand,
+            })
+            .collect()
+    }
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -254,8 +291,34 @@ pub fn part_one(input: &str) -> Option<u32> {
     None
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<usize> {
+    let mut machine = Machine::parse_and_init(input);
+
+    let target_sequence = machine.program_to_vec();
+    let n = target_sequence.len();
+
+    let mut a: usize = 0;
+    for i in (0..n).rev() {
+        a <<= 3;
+
+        loop {
+            machine.reset(a, 0, 0);
+            let output = machine.run_and_get_output();
+
+            if output == target_sequence[i..] {
+                break;
+            }
+            a += 1;
+        }
+    }
+
+    println!("--------------part two---------------");
+    println!("{:?}", target_sequence);
+    println!("--------------------------------");
+    println!("{}", a);
+    println!("--------------------------------");
+
+    Some(a)
 }
 
 #[cfg(test)]
@@ -271,6 +334,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(117440));
     }
 }
