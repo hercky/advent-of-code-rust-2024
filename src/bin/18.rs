@@ -23,21 +23,15 @@ fn parse_input(input: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn create_grid(points: Vec<(usize, usize)>) -> Vec<Vec<u32>> {
+fn create_grid(points: &Vec<(usize, usize)>, max_bytes: usize) -> Vec<Vec<u32>> {
     let mut grid = vec![vec![0; MAX_SIZE]; MAX_SIZE];
-    for &(x, y) in points.iter().take(MAX_BYTES) {
+    for &(x, y) in points.iter().take(max_bytes) {
         grid[y][x] = 1;
-    }
-    for row in grid.iter() {
-        for &cell in row.iter() {
-            print!("{}", if cell == 0 { '.' } else { '#' });
-        }
-        println!();
     }
     grid
 }
 
-fn smallest_path(grid: &Vec<Vec<u32>>, start: (usize, usize), end: (usize, usize)) -> u32 {
+fn smallest_path(grid: &Vec<Vec<u32>>, start: (usize, usize), end: (usize, usize)) -> Option<u32> {
     let mut visited = vec![vec![false; grid[0].len()]; grid.len()];
     // let mut path = Vec::new();
     // path.push(start);
@@ -48,7 +42,7 @@ fn smallest_path(grid: &Vec<Vec<u32>>, start: (usize, usize), end: (usize, usize
 
     while let Some((current, distance)) = queue.pop_front() {
         if current == end {
-            return distance;
+            return Some(distance);
         }
         // println!("Visiting: {:?}", current);
 
@@ -64,7 +58,7 @@ fn smallest_path(grid: &Vec<Vec<u32>>, start: (usize, usize), end: (usize, usize
         }
     }
 
-    unreachable!()
+    None
 }
 
 fn print_path_on_grid(grid: &Vec<Vec<u32>>, path: Vec<(usize, usize)>) {
@@ -82,12 +76,12 @@ fn print_path_on_grid(grid: &Vec<Vec<u32>>, path: Vec<(usize, usize)>) {
 
 pub fn part_one(input: &str) -> Option<u32> {
     let points = parse_input(input);
-    let grid = create_grid(points);
+    let grid = create_grid(&points, MAX_BYTES);
     println!("================");
 
     let start = (0, 0);
     let end = (MAX_SIZE - 1, MAX_SIZE - 1);
-    let distance = smallest_path(&grid, start, end);
+    let distance = smallest_path(&grid, start, end)?;
 
     // println!("Distance: {}", path.len());
     // print_path_on_grid(&grid, path);
@@ -96,6 +90,27 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let points = parse_input(input);
+
+    let start = (0, 0);
+    let end = (MAX_SIZE - 1, MAX_SIZE - 1);
+
+    let mut low: usize = MAX_BYTES;
+    let mut high: usize = points.len();
+
+    while low < high {
+        let mid = (low + high) / 2;
+        let new_points = points[0..mid].to_vec();
+        let grid = create_grid(&new_points, mid);
+
+        if let Some(distance) = smallest_path(&grid, start, end) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+
+    println!("{:?}", points[high - 1]);
     None
 }
 
