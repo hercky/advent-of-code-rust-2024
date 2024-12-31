@@ -43,7 +43,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     let mut answer = 0;
 
     let mut patterns_map = HashMap::new();
-    patterns_map.insert("".to_string(), true);
+    // patterns_map.insert("".to_string(), true);
     for pattern in patterns {
         patterns_map.insert(pattern, true);
     }
@@ -54,14 +54,60 @@ pub fn part_one(input: &str) -> Option<u32> {
         if check_combination_possible(&mut patterns_map, &combination) {
             answer += 1;
         }
-        println!("{}", patterns_map.len());
     }
 
     Some(answer)
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
-    None
+fn count_combinations(
+    original_patterns: &Vec<String>,
+    all_patterns_map: &mut HashMap<String, u64>,
+    combination: &str,
+) -> u64 {
+    if combination.len() == 0 {
+        return 1;
+    }
+
+    if all_patterns_map.contains_key(combination) {
+        return all_patterns_map[combination];
+    }
+
+    let mut count = 0;
+
+    for pattern in original_patterns {
+        if combination.starts_with(pattern) {
+            let suffix = combination[pattern.len()..].to_string();
+            count += count_combinations(original_patterns, all_patterns_map, &suffix);
+        }
+    }
+
+    all_patterns_map.insert(combination.to_string(), count);
+
+    count
+}
+
+pub fn part_two(input: &str) -> Option<u64> {
+    let (patterns, combinations) = parse_input(input);
+
+    let mut answer = 0;
+    let mut patterns_map: HashMap<String, u64> = HashMap::new();
+
+    let patterns_vec = patterns.clone();
+
+    for combination in combinations {
+        let combination_count = count_combinations(&patterns_vec, &mut patterns_map, &combination);
+        println!("{} -> {}", combination, combination_count);
+        answer += combination_count;
+
+        // break;
+    }
+
+    // println!("patterns_map");
+    // for (pattern, count) in &patterns_map {
+    //     println!("{} -> {}", pattern, count);
+    // }
+
+    Some(answer)
 }
 
 #[cfg(test)]
@@ -77,6 +123,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(16));
     }
 }
