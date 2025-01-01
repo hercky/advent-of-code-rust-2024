@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 
 const TIME_LIMIT: usize = 100;
-// const TIME_LIMIT: usize = 60;
+// const TIME_LIMIT: usize = 75;
 
 fn parse_input(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|line| line.chars().collect()).collect()
@@ -68,8 +68,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     let start = get_coords(&grid, 'S').unwrap();
     let end = get_coords(&grid, 'E').unwrap();
 
-    let (start_distance, start_path) = bfs(&grid, start, end);
-    let (end_distance, end_path) = bfs(&grid, end, start);
+    let (start_distance, _) = bfs(&grid, start, end);
 
     let mut answer = 0;
 
@@ -101,8 +100,44 @@ pub fn part_one(input: &str) -> Option<u32> {
     Some(answer)
 }
 
+fn manhattan_distance(a: (usize, usize), b: (usize, usize)) -> usize {
+    a.0.abs_diff(b.0) + a.1.abs_diff(b.1)
+}
+
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let grid = parse_input(input);
+
+    let start = get_coords(&grid, 'S').unwrap();
+    let end = get_coords(&grid, 'E').unwrap();
+
+    let (start_distance, _) = bfs(&grid, start, end);
+    // let (end_distance, _) = bfs(&grid, end, start);
+
+    let mut answer = 0;
+
+    let mut points: Vec<(usize, usize)> = start_distance.keys().cloned().collect();
+    points.sort_by_key(|point| start_distance[point]);
+
+    for i in 0..points.len() {
+        for j in i + 1..points.len() {
+            let point_a = points[i];
+            let point_b = points[j];
+
+            let dist_a = start_distance[&point_a];
+            let dist_b = start_distance[&point_b];
+
+            let diff = manhattan_distance(point_a, point_b);
+            if diff <= 20 && (dist_b as i32 - dist_a as i32 - diff as i32) >= TIME_LIMIT as i32 {
+                answer += 1;
+                // println!(
+                //     "({},{}) -> ({},{})",
+                //     point_a.0, point_a.1, point_b.0, point_b.1
+                // );
+            }
+        }
+    }
+
+    Some(answer)
 }
 
 #[cfg(test)]
@@ -112,12 +147,12 @@ mod tests {
     #[test]
     fn test_part_one() {
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, Some(1));
+        assert_eq!(result, Some(1)); // 50s
     }
 
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(3)); // 75s
     }
 }
