@@ -89,25 +89,89 @@ fn directional_to_directional_code(
     result
 }
 
-pub fn part_one(input: &str) -> Option<u64> {
+// Add this new struct to store memoization results
+#[derive(Default)]
+struct Memo {
+    cache: HashMap<(String, u32, bool), u128>,
+}
+
+impl Memo {
+    fn get_length(
+        &mut self,
+        sequence: &str,
+        iterations: u32,
+        first_iter: bool,
+        numeric_codes: &HashMap<(char, char), String>,
+        directional_codes: &HashMap<(char, char), String>,
+    ) -> u128 {
+        // Check cache first
+        let key = (sequence.to_string(), iterations, first_iter);
+        if let Some(&result) = self.cache.get(&key) {
+            return result;
+        }
+
+        // Base case
+        if iterations == 0 {
+            return sequence.len() as u128;
+        }
+
+        // Recursive case
+        let mut total_length = 0;
+        let mut prev = 'A';
+        let codes = if first_iter {
+            numeric_codes
+        } else {
+            directional_codes
+        };
+
+        for c in sequence.chars() {
+            let next_sequence = &codes[&(prev, c)];
+            total_length += self.get_length(
+                next_sequence,
+                iterations - 1,
+                false,
+                numeric_codes,
+                directional_codes,
+            );
+            prev = c;
+        }
+
+        // Store in cache and return
+        self.cache.insert(key, total_length);
+        total_length
+    }
+}
+
+pub fn part_one(input: &str) -> Option<u128> {
     let lines = parse_input(input);
-
     let (numeric_codes, directional_codes) = find_codes();
+    let mut memo = Memo::default();
 
-    let mut complexity: u64 = 0;
-
+    let mut complexity: u128 = 0;
     for line in lines {
-        let code = numeric_code_to_directional_code(&line, &numeric_codes);
-        let code = directional_to_directional_code(&code, &directional_codes);
-        let code = directional_to_directional_code(&code, &directional_codes);
-
-        complexity += line[..line.len() - 1].parse::<u64>().unwrap() * code.len() as u64;
+        let number = line[..line.len() - 1].parse::<u128>().unwrap();
+        complexity += number * memo.get_length(&line, 3, true, &numeric_codes, &directional_codes);
     }
 
     Some(complexity)
 }
 
-pub fn part_two(input: &str) -> Option<u64> {
+pub fn part_two(input: &str) -> Option<u128> {
+    let lines = parse_input(input);
+    let (numeric_codes, directional_codes) = find_codes();
+    let mut memo = Memo::default();
+
+    let mut complexity: u128 = 0;
+    for line in lines {
+        let number = line[..line.len() - 1].parse::<u128>().unwrap();
+        complexity += number * memo.get_length(&line, 26, true, &numeric_codes, &directional_codes);
+    }
+
+    println!("--------------------------------");
+    println!("{}", complexity);
+    println!("--------------------------------");
+
+    // Some(complexity)
     None
 }
 
