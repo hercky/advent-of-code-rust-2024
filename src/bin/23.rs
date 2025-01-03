@@ -3,20 +3,22 @@ advent_of_code::solution!(23);
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 
-pub fn part_one(input: &str) -> Option<u32> {
+fn parse_graph(input: &str) -> HashMap<&str, Vec<&str>> {
     let re = Regex::new(r"(\w+)-(\w+)").unwrap();
     let mut graph = HashMap::new();
-
     for line in input.lines() {
-        let caps = re.captures(line)?;
-        let a = caps.get(1)?.as_str();
-        let b = caps.get(2)?.as_str();
+        let caps = re.captures(line).unwrap();
+        let a = caps.get(1).unwrap().as_str();
+        let b = caps.get(2).unwrap().as_str();
         graph.entry(a).or_insert(vec![]).push(b);
         graph.entry(b).or_insert(vec![]).push(a);
         // println!("{:?} {:?}", a, b);
     }
+    graph
+}
 
-    // println!("{:?}", graph);
+pub fn part_one(input: &str) -> Option<u32> {
+    let graph = parse_graph(input);
 
     let mut candidates = Vec::new();
     for node in graph.keys() {
